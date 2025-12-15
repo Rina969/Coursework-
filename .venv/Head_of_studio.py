@@ -9,6 +9,10 @@ bot= telebot.TeleBot("8575877961:AAHgw2xCBZagYmj1s-LwlA-dhAcgXALxVzE")
 #======================
 #====HEAD OF STUDIO====
 #======================
+from telegram import Update
+from telegram.ext import CallbackContext
+
+
 def show_main_menu(markup):
     btn1 = types.KeyboardButton('Статистика')
     btn2=types.KeyboardButton('Новые заявки')
@@ -16,8 +20,7 @@ def show_main_menu(markup):
     btn3 = types.KeyboardButton('Изменить информацию о студии')
 
 
-@bot.message_handler(commands=['start'])
-def start(message):
+def head_start(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     show_main_menu(markup)
 
@@ -166,5 +169,3 @@ def cancel_editing(message):
     )
 
 
-
-bot.polling(none_stop=True)

@@ -16,3 +16,5 @@ def add_studio():
         con.commit()
         con.close()
 
+
+
