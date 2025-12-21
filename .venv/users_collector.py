@@ -6,46 +6,42 @@ class QuestionnaireBuilder:
     
     STUDIO_QUESTIONNAIRES = {
         # ID студии: [список ID вопросов из ALL_QUESTIONS]
-        1: {  # Танцевальная студия
-            'name': 'Танцевальная студия',
+        1: { 'name': 'Танцевальная студия',
             'questions': [
                 'full_name',      # 1. ФИО
                 'group',          # 2. Группа
                 'phone_number',          # 3. Телефон
                 'email',          # 4. Email
-                'dance_style',    # 5. Стиль танца
+                'project_ideas',    # 5. Стиль танца
                 'experience',     # 6. Опыт
                 'motivation',     # 7. Мотивация
                 'activeness',     # 8. Участие в мероприятиях
             ]
         },
-        6: {  # КВН
-            'name': 'КВН',
+        6: {'name': 'КВН',
             'questions': [
                 'full_name',      # 1. ФИО
                 'group',          # 2. Группа
                 'phone_number',          # 3. Телефон
                 'email',          # 4. Email
-                'experience',     # 5. Опыт
-                'why_choose_us',  # 6. Почему выбрали нас
-                'time_commitment',# 7. Временные возможности
+                'experience',
+                'quot',
+                'public_speakin',
             ]
         },
-        2: {  # Театральная студия
-            'name': 'Театральная студия',
+        2: {'name': 'Театральная студия',
             'questions': [
                 'full_name',      # 1. ФИО
                 'group',          # 2. Группа
                 'phone_number',          # 3. Телефон
-                'email',          # 4. Email
-                'theater_role',   # 5. Театральные роли
+                'email',   # 5. Театральные роли
                 'experience',     # 6. Опыт
                 'motivation',     # 7. Мотивация
-                'activeness',     # 8. Участие в мероприятиях
+                'improvisation',
+                'feedback_source',
             ]
         },
-        4: {  # МУЗГУАП
-            'name': 'МУЗГУАП',
+        4: {'name': 'МУЗГУАП',
             'questions': [
                 'full_name',      # 1. ФИО
                 'group',          # 2. Группа
@@ -53,58 +49,56 @@ class QuestionnaireBuilder:
                 'email',          # 4. Email
                 'music_instrument', # 5. Музыкальный инструмент
                 'singing_experience', # 6. Опыт пения
-                'expectations',   # 7. Ожидания
-                'activeness',     # 8. Участие в мероприятиях
+                'public_speakin',
+                'activeness',
             ]
         },
-        5: {  # Медиацентр
-            'name': 'Медиацентр',
+        5: {'name': 'Медиацентр',
+            'questions': [
+                'full_name',      # 1. ФИО
+                'group',          # 2. Группа
+                'phone_number',          # 3. Телефон
+                'email',          # 4. Email
+                'media',
+                'experience',
+                'project_ideas',
+                'time_commitment',
+            ]
+        },
+        3: {'name': 'Студия технического обеспечения мероприятий',
             'questions': [
                 'full_name',      # 1. ФИО
                 'group',          # 2. Группа
                 'phone_number',          # 3. Телефон
                 'email',          # 4. Email
                 'tech_skills',    # 5. Технические навыки
-                'experience',     # 6. Опыт
-                'project_ideas',  # 7. Идеи для проектов
-                'time_commitment',# 8. Временные возможности
+                'organizational_exp',
+                'leadership',
+                'feedback_source',
             ]
         },
-        3: {  # Техничка
-            'name': 'Студия технического обеспечения мероприятий',
+        7: {'name': 'Студия организации мероприятий',
             'questions': [
                 'full_name',      # 1. ФИО
                 'group',          # 2. Группа
                 'phone_number',          # 3. Телефон
                 'email',          # 4. Email
-                'tech_skills',    # 5. Технические навыки
-               # 'feedback_source',# 8. Откуда узнали
+                'organizational_exp',
+                'motivation',
+                'activeness',
+                'tech_skills',
             ]
         },
-        7: {  # Студия организации мероприятий
-            'name': 'Студия организации мероприятий',
+        8: {'name': 'Студия ведущих',
             'questions': [
                 'full_name',      # 1. ФИО
                 'group',          # 2. Группа
                 'phone_number',          # 3. Телефон
                 'email',          # 4. Email
-                'organizational_exp', # 5. Организационный опыт
-                'motivation',     # 6. Мотивация
-                'activeness',     # 7. Участие в мероприятиях
-                'tech_skills',    # 8. Технические навыки
-            ]
-        },
-        8: {  # студия ведущих
-            'name': 'Студия ведущих',
-            'questions': [
-                'full_name',      # 1. ФИО
-                'group',          # 2. Группа
-                'phone_number',          # 3. Телефон
-                'email',          # 4. Email
-                'experience',     # 5. Опыт в деятельности
-                'project_ideas',  # 6. Идеи для проектов
-                'expectations',   # 7. Ожидания
-                'time_commitment',# 8. Временные возможности
+                'experience', # 6. Идеи для проектов
+                'public_speakin',
+                'quot',
+                'improvisation',
             ]
         },
     }

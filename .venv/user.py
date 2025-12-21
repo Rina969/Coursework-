@@ -6,8 +6,9 @@ from typing import Dict, Any, List, Tuple
 import logging
 import re
 
+from Admin import initialize as init_admin, admin_start, handle_admin_message
 from users_collector import QuestionnaireBuilder
-from вопросы import get_question_text, get_question_obj
+from questions import get_question_handler, get_question_obj
 
 # Настройка логирования
 logging.basicConfig(
@@ -18,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 bot = telebot.TeleBot("8575877961:AAHgw2xCBZagYmj1s-LwlA-dhAcgXALxVzE")
 DB_PATH = "student_studios_bot (1).db"
+#Инициализация модуля для функционала админа
+init_admin(bot)
 
 def get_connection() -> sqlite3.Connection:
     """Возвращает соединение с БД"""
@@ -34,8 +37,64 @@ def load_active_studios() -> List[Tuple[int, str]]:
         logger.error(f"Error loading studios: {e}")
         return []
 
+#===========ОПРЕДЕЛЕНИЕ РОЛИ ПО БД==========================
+def get_user_role(username: str) -> str:
+    #Получение роли пользователя из базы данных
+    if not username:
+        return 'student'
+
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            # Ищем username с @ (как хранится в БД)
+            cursor.execute("SELECT role FROM users WHERE username = ?", (f"{username}",))
+            result = cursor.fetchone()
+            return result[0] if result else 'student'
+    except Exception as e:
+        logger.error(f"Database error getting role: {e}")
+        return 'student'
+
+
 @bot.message_handler(commands=['start'])
 def start(message):
+    """Главный обработчик команды /start с распределением по ролям"""
+    username = message.from_user.username
+
+    # Получаем роль из базы данных
+    role = get_user_role(username)
+    print(username)
+    print("Role:",role)
+    # Распределение по ролям
+    if role == 'admin':
+        try:
+            from Admin import admin_start
+            admin_start(message)
+            return
+        except ImportError as e:
+            logger.error(f"Error importing Admin: {e}")
+            bot.send_message(message.chat.id, "Модуль администратора недоступен")
+        except Exception as e:
+            logger.error(f"Error in admin_start: {e}")
+            bot.send_message(message.chat.id, "Ошибка в модуле администратора")
+
+    elif role == 'head':
+        try:
+            from Head_studio import head_start
+            head_start( message)
+            return
+        except ImportError as e:
+            logger.error(f"Error importing Head_of_studio: {e}")
+            bot.send_message(message.chat.id, "Модуль руководителя недоступен")
+        except Exception as e:
+            logger.error(f"Error in head_start: {e}")
+            bot.send_message(message.chat.id, "Ошибка в модуле руководителя")
+
+    # Для user или если пользователя нет в базе
+    user_start(message)
+
+
+#==============ФУНКЦИОНАЛ СТАНДАРТНОГО ПОЛЬЗОВАТЕЛЯ=========================
+def user_start(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton('Каталог студий')
     markup.row(btn1)
@@ -85,7 +144,7 @@ def show_studio_info(call):
 
             if result:
                 name, description, contacts = result
-                text = f"<b>{name}</b>\n\n{description or 'Описание скоро появится.'}\n\n<b>Контакты:</b> {contacts or '—'}"
+                text = f"<b>{name}</b>\n\n{description or 'Описание скоро появится.'}"
 
                 # Добавляем кнопку подачи заявки
                 markup = types.InlineKeyboardMarkup()
@@ -94,6 +153,7 @@ def show_studio_info(call):
 
                 bot.edit_message_text(
                     text,
+
                     call.message.chat.id,
                     call.message.message_id,
                     parse_mode='html',
@@ -148,7 +208,7 @@ class QuestionnaireHandler:
     def get_user_data(self, user_id: int) -> Dict[str, Any]:
         """Получает данные пользователя из БД для автозаполнения"""
         try:
-            with get_connection() as conn:  # Открывается соединение
+            with get_connection() as conn:  
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT full_name, student_group, phone_number, email 
@@ -192,7 +252,7 @@ class QuestionnaireHandler:
                 message += f"• {info}\n"
             message += "\nХотите использовать их для автозаполнения?"
         else:
-            message += "Хотите использовать основную информацию из предыдущих анкет для автозаполнения?"
+            message += "Хотите использовать основную информацию из предыдущих анкет для автозаполнения?"####
 
         markup = types.InlineKeyboardMarkup()
         markup.row(
@@ -223,10 +283,6 @@ class QuestionnaireHandler:
             call.message.message_id,
             parse_mode='Markdown'
         )
-
-        # Даем небольшую задержку перед первым вопросом
-        import time
-        time.sleep(1)
 
         # Задаем первый вопрос
         self.ask_next_question(call.message.chat.id, user_id)
@@ -259,7 +315,8 @@ class QuestionnaireHandler:
         user_states[user_id]['current_question_id'] = qid
 
         # Получаем текст вопроса
-        question_text = get_question_text(qid)
+        print(qid)
+        question_text = get_question_handler(qid)
 
         # Отправляем вопрос
         bot.send_message(chat_id, question_text)
@@ -392,69 +449,6 @@ def handle_autofill_choice(call):
     user_states[user_id]['state'] = 'answering'
     questionnaire_handler.ask_next_question(call.message.chat.id, user_id)
 
-    def save_application_to_db(telegram_id: int, studio_id: int, answers: dict, user_first_name: str = None,
-                               user_last_name: str = None):
-        """Сохраняет заявку в БД"""
-        try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-
-                # 1. Получаем или создаем пользователя
-                cursor.execute("SELECT user_id FROM users WHERE telegram_id = ?", (telegram_id,))
-                user_result = cursor.fetchone()
-
-                if user_result:
-                    user_id = user_result[0]
-                else:
-                    # Получаем ФИО из ответов
-                    full_name = answers.get('full_name')
-
-                    # Если нет в ответах, используем имя из Telegram
-                    if not full_name and user_first_name:
-                        full_name = f"{user_first_name or ''} {user_last_name or ''}".strip()
-                        if not full_name:
-                            full_name = "Не указано"
-                    elif not full_name:
-                        full_name = "Не указано"
-
-                    # Создаем нового пользователя
-                    cursor.execute("""
-                        INSERT INTO users (telegram_id, full_name, created_at)
-                        VALUES (?, ?, ?)
-                    """, (telegram_id, full_name, datetime.now()))
-                    user_id = cursor.lastrowid
-
-                # 2. Генерируем сводку
-                summary = QuestionnaireBuilder.generate_summary(studio_id, answers)
-
-                # 3. Сохраняем заявку
-                cursor.execute("""
-                    INSERT INTO applications (user_id, studio_id, summary_text, status, created_at)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (user_id, studio_id, summary, 'pending', datetime.now()))
-
-                application_id = cursor.lastrowid
-
-                # 4. Сохраняем ответы на каждый вопрос (опционально)
-                for question_id, answer in answers.items():
-                    q_obj = get_question_obj(question_id)
-                    question_text = q_obj.text if q_obj else question_id
-
-                    cursor.execute("""
-                        INSERT INTO application_answers 
-                        (application_id, question_id, question_text, answer_text)
-                        VALUES (?, ?, ?, ?)
-                    """, (application_id, question_id, question_text, answer))
-
-                conn.commit()
-                return application_id
-
-        except Exception as e:
-            logger.error(f"Error saving application: {e}")
-            return None
-
-# ... предыдущий код до функции handle_autofill_choice ...
-
 @bot.callback_query_handler(func=lambda call: call.data in ['use_autofill', 'manual_fill'])
 def handle_autofill_choice(call):
     """Обработка выбора автозаполнения"""
@@ -486,7 +480,6 @@ def handle_autofill_choice(call):
     user_states[user_id]['state'] = 'answering'
     questionnaire_handler.ask_next_question(call.message.chat.id, user_id)
 
-# ========== ВЫНЕСИТЕ ЭТИ ФУНКЦИИ НА УРОВЕНЬ ДРУГИХ ФУНКЦИЙ ==========
 
 def save_application_to_db(telegram_id: int, studio_id: int, answers: dict, user_first_name: str = None,
                            user_last_name: str = None):
@@ -565,7 +558,6 @@ def handle_confirmation_actions(call):
     answers = state.get('answers', {})
 
     if call.data == 'confirm_application':
-        # СОХРАНЯЕМ В БД с передачей имени пользователя
         application_id = save_application_to_db(
             telegram_id=user_id,
             studio_id=studio_id,
@@ -599,7 +591,6 @@ def handle_confirmation_actions(call):
         del user_states[user_id]
 
     elif call.data == 'restart_questionnaire':
-        # Начинаем заново
         state['current_question_index'] = 0
         state['answers'] = {}
         state['state'] = 'answering'
@@ -616,7 +607,6 @@ def handle_confirmation_actions(call):
         questionnaire_handler.ask_next_question(call.message.chat.id, user_id)
 
     elif call.data == 'cancel_to_catalog':
-        # Отменяем и возвращаем в каталог
         if user_id in user_states:
             del user_states[user_id]
 
@@ -642,7 +632,6 @@ def handle_confirmation_actions(call):
             )
 
     elif call.data == 'go_to_main_menu':
-        # Возвращаем в главное меню
         if user_id in user_states:
             del user_states[user_id]
 
@@ -674,11 +663,15 @@ def handle_confirmation_actions(call):
 def handle_all_text_messages(message):
     """Обработка всех текстовых сообщений"""
     user_id = message.from_user.id
-
+    username = message.from_user.username
     # Проверяем, находится ли пользователь в процессе заполнения анкеты
     if user_id in user_states and user_states[user_id].get('state') == 'answering':
         questionnaire_handler.process_answer(message)
         return
+
+    if get_user_role(username) == "admin":
+        from Admin import handle_admin_message
+        handle_admin_message(message)
 
     # Обработка других команд
     if message.text == 'Мои заявки':
@@ -687,6 +680,8 @@ def handle_all_text_messages(message):
         inline_button_catalog(message)
     else:
         bot.send_message(message.chat.id, "Используйте кнопки меню или команду /start")
+
+
 
 # Запуск бота
 if __name__ == '__main__':
