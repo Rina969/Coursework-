@@ -28,18 +28,54 @@ class StudioManager:
     def get_connection(self) -> sqlite3.Connection:
         """Возвращает соединение с БД"""
         return sqlite3.connect(self.db_path, check_same_thread=False)
-    
+
+    def start_reviewing_applications_with_id(self, user_id: int, studio_id: int) -> bool:
+        """Начинает просмотр заявок для указанного пользователя и студии"""
+        try:
+            # Получаем новые заявки
+            applications = self.get_new_applications(studio_id)
+
+            if not applications:
+                return False
+
+            # Сохраняем состояние пользователя
+            self.user_states[user_id] = {
+                'studio_id': studio_id,
+                'applications': applications,
+                'current_index': 0,
+                'status': 'reviewing'
+            }
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Error starting review for user {user_id}, studio {studio_id}: {e}")
+            return False
+
     def get_studio_id_for_head(self, user_id: int) -> Optional[int]:
-        #Получает ID студии, за которой закреплен руководитель
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                print(f"\n[DEBUG] Ищу студию для user_id: {user_id}")
+
                 cursor.execute("""
                     SELECT studio_id 
                     FROM studios 
                     WHERE head_user_id = ?
                 """, (user_id,))
+
                 result = cursor.fetchone()
+                print(f"[DEBUG] Результат запроса: {result}")
+
+                if result:
+                    print(f"[DEBUG] Найдена студия ID: {result[0]}")
+                else:
+                    print(f"[DEBUG] Студия не найдена для user_id: {user_id}")
+                    # Покажем все студии для отладки
+                    cursor.execute("SELECT studio_id, name, head_user_id FROM studios")
+                    all_studios = cursor.fetchall()
+                    print(f"[DEBUG] Все студии в базе: {all_studios}")
+
                 return result[0] if result else None
         except Exception as e:
             logger.error(f"Error getting studio for head {user_id}: {e}")
