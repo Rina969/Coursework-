@@ -45,7 +45,6 @@ def start(message):
         handle_head_start(message)
         return
 
-    # Для обычных пользователей
     user_start(message)
 
 
@@ -87,12 +86,6 @@ def handle_my_applications(message):
     applications_manager.show_user_applications(message.chat.id, user_id)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Главное меню')
-def handle_main_menu_return(message):
-    """Возврат в главное меню"""
-    user_start(message)
-
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith('info:'))
 def handle_studio_info(call):
     """Показ информации о студии"""
@@ -122,7 +115,6 @@ def handle_autofill_choice(call):
         user_data = state['user_data']
         logger.info(f"Данные пользователя для автозаполнения: {user_data}")
 
-        # Получаем все вопросы для этой студии
         questions = QuestionnaireBuilder.get_question_objects(studio_id)
 
         for q in questions:
@@ -167,12 +159,8 @@ def handle_all_text_messages(message):
         from Admin import handle_admin_message
         handle_admin_message(message)
         return
-
-    # Обработка других команд
     if message.text == 'Мои заявки':
         bot.send_message(message.chat.id, "Функция 'Мои заявки' в разработке")
-    else:
-        bot.send_message(message.chat.id, "Используйте кнопки меню или команду /start")
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'confirm_application')
@@ -181,7 +169,6 @@ def handle_confirm_application(call):
     if call.from_user.id in questionnaire_flow.user_states:
         questionnaire_flow._confirm_application(call)
 
-        # После отправки заявки показываем главное меню
         markup = create_main_user_menu()
         bot.send_message(
             call.message.chat.id,
