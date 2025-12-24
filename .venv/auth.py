@@ -33,4 +33,12 @@ def get_studio_id_for_head(user_id: int) -> Optional[int]:
             return result[0] if result else None
     except Exception as e:
         logger.error(f"Error getting studio for head {user_id}: {e}")
+<<<<<<< HEAD
         return None
+=======
+        return None
+
+
+
+
+>>>>>>> 2c58de2511d2324c74225b79a43c74abe47df76c

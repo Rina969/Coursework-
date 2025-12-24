@@ -103,4 +103,12 @@ def load_active_studios():
             return cursor.fetchall()
     except Exception as e:
         logger.error(f"Error loading studios: {e}")
+<<<<<<< HEAD
         return []
+=======
+        return []
+
+
+
+
+>>>>>>> 2c58de2511d2324c74225b79a43c74abe47df76c
